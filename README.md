@@ -42,7 +42,7 @@ At the start, extensions would have been a command ran by Dlauncher then its std
 
 ## Backend
 * The backend is now written in Rust, allowing the launcher to use less resources.
-* The way search works, there aren't that many fuzzy search libraries, I just decided to use one that seemed good enough and would do the job. This will obviously make search results be a bit different
+* The way search works might still act different from the original Ulauncher. I found a library called [fuzzywuzzy-rs](https://github.com/logannc/fuzzywuzzy-rs) which had a method called `get_matching_blocks` which I have just decided to copy over to here since I did not want to import this as a dependency/use anything from it except that.
 * Recents are stored in a file called `dlauncher.druncache`
 * The configuration is entirely based in a file instead of being managed through a UI. (I might add an external program that manages the file, so it doesn't interfere with the main process)
 * Extensions (basically entirely different lol)
