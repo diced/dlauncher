@@ -2,7 +2,10 @@
 Basically a one to one copy of Ulauncher, with a different backend.
 
 # Installing
-As of now Dlauncher is not available on any distributions. You can build it though!
+
+## Arch Linux
+Dlauncher is available as an AUR package. Install the [`dlauncher`](https://aur.archlinux.org/packages/dlauncher) package if you do not want to build. Install the [`dlauncher-git`](https://aur.archlinux.org/packages/dlauncher-git) package if you want to build from source.
+
 ## Building
 ```shell
 git clone https://github.com/diced/dlauncher
