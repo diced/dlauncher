@@ -1,7 +1,7 @@
 // The slice_utf8, find_longest_match are from https://github.com/logannc/fuzzywuzzy-rs/blob/master/src/utils.rs with some modifications
 // I did not want to import the whole crate for just one function.
 
-pub(crate) fn slice_utf8(string: &str, low: usize, high: usize) -> &str {
+pub fn slice_utf8(string: &str, low: usize, high: usize) -> &str {
   let char_count = string.chars().count();
   debug_assert!(!(low > high));
   debug_assert!(!(high > char_count));

@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use self::util::find_longest_match;
+use self::util::{find_longest_match, slice_utf8};
 
 mod util;
 
@@ -66,7 +66,8 @@ pub fn get_matching_blocks(a: &str, b: &str) -> MatchingBlocks {
   let mut output = Vec::new();
   let mut total_len = 0;
   for (_, text_idx, len) in blocks {
-    output.push((text_idx, b[text_idx..text_idx + len].to_string()));
+    let a = slice_utf8(b, text_idx, text_idx + len);
+    output.push((text_idx, a.to_string()));
     total_len += len;
   }
 
@@ -82,7 +83,7 @@ pub fn get_score(a: &str, b: &str) -> usize {
   let mut base_similarity = (matching_cars as f64) / (a_len as f64);
 
   for (index, _) in blocks {
-    let is_word_boundary = index == 0 || b[index - 1..index] == *" ";
+    let is_word_boundary = index == 0 || slice_utf8(b, index - 1, index) == " ";
     if !is_word_boundary {
       base_similarity -= 0.5 / a_len as f64;
     }
