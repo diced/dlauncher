@@ -1,9 +1,11 @@
 use std::{fmt, rc::Rc};
 
 use crate::{
-  entry::{ext::Ext, ResultEntry},
+  entry::{extension_entry::ExtensionEntry, ResultEntry},
   extension::ExtensionContext,
-  launcher::{result::ResultWidget, window::Window}, fuzzy::MatchingBlocks, util::no_match,
+  fuzzy::MatchingBlocks,
+  launcher::{result::ResultWidget, window::Window},
+  util::no_match,
 };
 
 #[derive(Debug, Clone)]
@@ -132,7 +134,7 @@ impl ExtensionResponse {
     let mut result = Vec::new();
 
     for line in &self.lines {
-      let entry = ResultEntry::Extension(Ext::new(&self.extension_name, line.clone()));
+      let entry = ResultEntry::Extension(ExtensionEntry::new(&self.extension_name, line.clone()));
       result.push(ResultWidget::new(
         entry.clone(),
         window.clone(),

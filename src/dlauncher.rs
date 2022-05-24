@@ -9,7 +9,7 @@ use log::{debug, info};
 
 use dlauncher::{
   launcher::{util::config::Config, window::Window},
-  util::init_logger
+  util::init_logger,
 };
 
 fn main() {

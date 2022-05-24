@@ -89,7 +89,7 @@ impl Config {
         color_theme: "light".to_string(),
         frequent_apps: 6,
         clear_input: true,
-        hide_on_focus_lost: false,
+        hide_on_focus_lost: true,
         terminal_command: None,
       },
       keybinds: None,
@@ -167,7 +167,8 @@ impl Config {
   pub fn setup(&self) {
     let theme_path = self.themes_dir().join("light");
     create_dir_all(&theme_path).unwrap();
-
+    create_dir_all(&self.dir().join("extensions")).unwrap();
+    create_dir_all(&self.dir().join("scripts")).unwrap();
 
     // Copies over default theme.
     let default_manifest = include_bytes!("../../../data/themes/light/manifest.json");

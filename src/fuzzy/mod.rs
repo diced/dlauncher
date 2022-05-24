@@ -89,7 +89,8 @@ pub fn get_score(a: &str, b: &str) -> usize {
     }
   }
 
-  let score = 100.0 * base_similarity * a_len as f64 / (a_len as f64 + (max_len - a_len) as f64 * 0.001);
+  let score =
+    100.0 * base_similarity * a_len as f64 / (a_len as f64 + (max_len - a_len) as f64 * 0.001);
 
   score.round() as usize
 }

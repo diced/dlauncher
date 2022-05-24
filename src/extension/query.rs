@@ -1,3 +1,4 @@
+/// Simple struct that is supposed to serve as a utility for inputs.
 #[derive(Debug, Clone)]
 pub struct Query(String, String);
 

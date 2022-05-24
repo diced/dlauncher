@@ -11,3 +11,5 @@ pub mod util;
 
 /// Fuzzy Search utilities
 pub mod fuzzy;
+
+pub mod script;

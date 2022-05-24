@@ -1,22 +1,29 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  sync::{Arc, Mutex},
+};
 
 use gtk::{
-  gdk::{prelude::*, Display, EventKey, Monitor},
-  gio::Settings,
-  prelude::*,
-  Builder, Entry, EventBox, ScrolledWindow, Window as GtkWindow,
+  Builder,
+  Entry,
+  EventBox,
+  gdk::{Display, EventKey, Monitor, prelude::*}, gio::Settings, prelude::*, ScrolledWindow, Window as GtkWindow,
 };
-use log::{error, debug};
+use log::{debug, error};
 
 use crate::{
-  entry::{
-    app::{App, Recent},
-    ResultEntry,
-  },
+  entry::{app_entry::AppEntry, ResultEntry},
   extension::{Extension, ExtensionExitCode},
-  launcher::{navigation::Navigation, result::ResultWidget, util::{config::Config, query_history::QueryHistory}},
-  util::matches_app, fuzzy::MatchingBlocks
+  fuzzy::MatchingBlocks,
+  launcher::{
+    navigation::Navigation,
+    result::ResultWidget,
+    util::{app::App, config::Config, query_history::QueryHistory, recent::Recent},
+  },
+  script::Script,
+  util::matches_app,
 };
+use crate::entry::script_entry::ScriptEntry;
+use crate::util::matches_script;
 
 #[derive(Debug, Clone)]
 pub struct Window {
@@ -37,12 +44,14 @@ pub struct Window {
 #[derive(Debug, Clone)]
 pub struct WindowState {
   /// A list of desktop entries/apps that are eligible to be shown in the results.
-  pub apps: Arc<Mutex<Vec<App>>>,
+  pub apps: Arc<Mutex<Vec<AppEntry>>>,
   /// A list of recent apps that are shown when there is no query or to determine which result
   /// should be displayed above another.
   pub recents: Arc<Mutex<Vec<Recent>>>,
   /// Query History
   pub query_history: Arc<QueryHistory>,
+  /// Scripts
+  pub scripts: Arc<Vec<Script>>,
 }
 
 #[derive(Debug, Clone)]
@@ -53,8 +62,9 @@ pub struct Result {
 
 impl Window {
   pub fn new(application: &gtk::Application, config: &Config) -> Self {
-    let apps = Arc::new(Mutex::new(App::read_all()));
-    let recents = App::get_recents(config.recents());
+    let apps = Arc::new(Mutex::new(App::all()));
+    let recents = Arc::new(Mutex::new(Recent::all(config.recents())));
+    let scripts = Arc::new(Script::all(config));
     let dlauncher_str = include_str!("../../data/ui/DlauncherWindow.ui");
 
     let builder = Builder::new();
@@ -76,8 +86,9 @@ impl Window {
     let mut sel = Self {
       state: WindowState {
         apps,
-        recents: Arc::new(Mutex::new(recents)),
-        query_history:  query_history.clone(),
+        scripts,
+        recents,
+        query_history: query_history.clone(),
       },
       builder,
       navigation: Arc::new(Mutex::new(Navigation::new(query_history))),
@@ -182,14 +193,6 @@ impl Window {
 
   /// Show the GTK window, and refresh the apps and recents.
   pub fn show_window(&self) {
-    let mut apps = self.state.apps.lock().unwrap();
-    *apps = App::read_all();
-    drop(apps);
-
-    let mut recents = self.state.recents.lock().unwrap();
-    *recents = App::get_recents(self.config.recents());
-    drop(recents);
-
     for ext in &self.extensions {
       match ext.on_open() {
         ExtensionExitCode::Error(err) => {
@@ -203,7 +206,18 @@ impl Window {
     self.window.present();
     self.position_window();
     self.fix_window_width();
+
+    let mut apps = self.state.apps.lock().unwrap();
+    let mut recents = self.state.recents.lock().unwrap();
+    *apps = App::all();
+    *recents = Recent::all(self.config.recents());
+
+    // For some reason the mutex doesn't go out of scope and get automatically dropped so i had to do this.
+    drop(apps);
+    drop(recents);
+
     self.show_results(vec![], false);
+    self.window.grab_focus();
 
     let input: Entry = self.builder.object("input").expect("Couldn't get input");
     if self.config.launcher.clear_input {
@@ -236,8 +250,9 @@ impl Window {
   /// When override is true, it will act like there are no results and show nothing. When it is
   /// false, it will show the recent apps (override should be `true` for all extensions!).
   pub fn show_results(&self, results: Vec<ResultWidget>, override_: bool) {
+    let scroll_box: ScrolledWindow = self.builder.object("result_box_scroll_container").unwrap();
+
     if override_ && results.is_empty() {
-      let scroll_box: ScrolledWindow = self.builder.object("result_box_scroll_container").unwrap();
       scroll_box.hide();
       return;
     }
@@ -253,6 +268,10 @@ impl Window {
         .filter(|result| result.is_some())
         .flatten()
         .collect::<Vec<ResultWidget>>();
+
+      if res.is_empty() {
+        scroll_box.hide();
+      }
 
       if res.len() > self.config.launcher.frequent_apps as usize {
         res.truncate(self.config.launcher.frequent_apps as usize);
@@ -359,10 +378,12 @@ impl Window {
         navigation.go_down();
       } else if keycode == custom.open {
         if let Some(selected) = navigation.selected {
-          // save query to self.state.query_history
           let entry = &navigation.results[selected as usize].entry;
           if !input.text().is_empty() {
-            self.state.query_history.save_query(input.text(), entry.name());
+            self
+              .state
+              .query_history
+              .save_query(input.text(), entry.name());
             debug!("Saved query_history {}: {}", input.text(), entry.name());
           }
 
@@ -401,24 +422,29 @@ impl Window {
       let apps = self.state.apps.lock().unwrap();
       for app in apps.iter() {
         if let Some((match_, score)) = matches_app(app, text, self.config.main.least_score) {
-          unsort.push((
-            ResultEntry::App(app.clone()),
-            self.clone(),
-            match_,
-            score,
-          ));
+          unsort.push((ResultEntry::App(app.clone()), self.clone(), match_, score));
         }
       }
 
-      let mut unsort: Vec<(ResultEntry, Window, MatchingBlocks, usize)> = unsort.into_iter().filter(|x| x.3 > x.1.config.main.least_score).collect();
+      for script in self.state.scripts.iter() {
+        if let Some((match_, score)) = matches_script(script, text, self.config.main.least_score) {
+          unsort.push((ResultEntry::Script(ScriptEntry::new(script.clone())), self.clone(), match_, score));
+        }
+      }
 
-      unsort
-        .sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap());
+      let mut unsort: Vec<(ResultEntry, Window, MatchingBlocks, usize)> = unsort
+        .into_iter()
+        .filter(|x| x.3 > x.1.config.main.least_score)
+        .collect();
 
-      results.extend(unsort.into_iter().map(|(entry, window, match_, _)| {
-        ResultWidget::new(entry, window, match_)
-      }));
-      
+      unsort.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap());
+
+      results.extend(
+        unsort
+          .into_iter()
+          .map(|(entry, window, match_, _)| ResultWidget::new(entry, window, match_)),
+      );
+
       if results.len() > 9 {
         results.truncate(9);
       }

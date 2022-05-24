@@ -1,6 +1,6 @@
-use gtk::{prelude::*, Builder, EventBox, Image, Label};
+use gtk::{Builder, EventBox, Image, Label, prelude::*};
 
-use crate::{entry::ResultEntry, launcher::window::Window, fuzzy::MatchingBlocks};
+use crate::{entry::ResultEntry, fuzzy::MatchingBlocks, launcher::window::Window};
 
 #[derive(Debug, Clone)]
 pub struct ResultWidget {
@@ -37,15 +37,13 @@ impl ResultWidget {
 
     let mut name_c = entry.name().to_string();
     for (_, (index, chars)) in match_.0.iter().rev().enumerate() {
-      name_c = name_c[0..*index]
-        .to_string()
-        .to_string()
+      name_c = name_c[0..*index].to_string().to_string()
         + &open_tag
         + &chars
         + close_tag
         + &name_c[index + chars.len()..];
     }
-    
+
     item_name.set_markup(&name_c);
 
     item_icon.set_from_pixbuf(Some(&entry.icon()));

@@ -8,13 +8,15 @@ use crate::{
   },
 };
 
-pub mod app;
-pub mod ext;
+pub mod app_entry;
+pub mod extension_entry;
+pub mod script_entry;
 
 #[derive(Debug, Clone)]
 pub enum ResultEntry {
-  App(app::App),
-  Extension(ext::Ext),
+  App(app_entry::AppEntry),
+  Extension(extension_entry::ExtensionEntry),
+  Script(script_entry::ScriptEntry),
   None,
 }
 
@@ -23,14 +25,16 @@ impl ResultEntry {
     match self {
       ResultEntry::App(app) => &app.name,
       ResultEntry::Extension(ext) => &ext.name,
+      ResultEntry::Script(script) => script.name(),
       ResultEntry::None => "No results",
     }
   }
 
   pub fn description(&self) -> &str {
     match self {
-      ResultEntry::App(app) => &app.desc,
+      ResultEntry::App(app) => &app.description,
       ResultEntry::Extension(ext) => &ext.description,
+      ResultEntry::Script(script) => script.desc(),
       ResultEntry::None => "No results found.",
     }
   }
@@ -39,6 +43,7 @@ impl ResultEntry {
     match self {
       ResultEntry::App(app) => app.icon(),
       ResultEntry::Extension(ext) => ext.icon(),
+      ResultEntry::Script(script) => script.icon(),
       ResultEntry::None => default_pixbuf(40),
     }
   }
@@ -57,6 +62,7 @@ impl ResultEntry {
           })
         }
       }
+      ResultEntry::Script(script) => script.run(),
       ResultEntry::None => (),
     }
   }

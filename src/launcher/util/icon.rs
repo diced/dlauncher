@@ -1,4 +1,4 @@
-use gtk::{gdk_pixbuf::Pixbuf, prelude::*, IconLookupFlags, IconTheme};
+use gtk::{gdk_pixbuf::Pixbuf, IconLookupFlags, IconTheme, prelude::*};
 
 /// Get a themed icon's specific path on the filesystem.
 pub fn get_icon_path(icon: &str, size: i32) -> String {

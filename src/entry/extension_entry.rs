@@ -1,8 +1,9 @@
+use std::fmt;
+
 use gtk::{
   gdk_pixbuf::{Pixbuf, PixbufLoader},
   prelude::*,
 };
-use std::fmt;
 
 use crate::{
   extension::response::{
@@ -11,7 +12,7 @@ use crate::{
   launcher::util::icon::load_icon,
 };
 
-pub struct Ext {
+pub struct ExtensionEntry {
   pub extension_name: String,
   pub name: String,
   pub description: String,
@@ -19,7 +20,7 @@ pub struct Ext {
   pub on_enter: OnEnterFn,
 }
 
-impl Ext {
+impl ExtensionEntry {
   pub fn new(extension_name: &str, line: ExtensionResponseLine) -> Self {
     Self {
       extension_name: extension_name.to_string(),
@@ -44,7 +45,7 @@ impl Ext {
   }
 }
 
-impl fmt::Debug for Ext {
+impl fmt::Debug for ExtensionEntry {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("Ext")
       .field("extension_name", &self.extension_name)
@@ -55,7 +56,7 @@ impl fmt::Debug for Ext {
   }
 }
 
-impl Clone for Ext {
+impl Clone for ExtensionEntry {
   fn clone(&self) -> Self {
     Self {
       extension_name: self.extension_name.clone(),

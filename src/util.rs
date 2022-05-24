@@ -1,19 +1,24 @@
-use crate::{entry::app::App, fuzzy::MatchingBlocks};
+use std::path::Path;
+
 use gtk::{
+  Clipboard,
   gdk::SELECTION_CLIPBOARD,
   glib::{spawn_async, SpawnFlags},
-  Clipboard,
 };
 use libc::setsid;
-use std::path::Path;
-use crate::fuzzy::{get_matching_blocks, get_score};
+
+use crate::{
+  entry::app_entry::AppEntry,
+  fuzzy::{get_matching_blocks, get_score, MatchingBlocks},
+};
+use crate::script::Script;
 
 pub fn no_match() -> MatchingBlocks {
   (vec![], 0)
 }
 
 /// Copy `text` to the clipboard.
-/// Requires gtk::set_initialized() to be called first.
+/// Requires gtk::set_initialized() to be called first if inside an extension.
 pub fn copy_to_clipboard(text: &str) {
   let clipboard = Clipboard::get(&SELECTION_CLIPBOARD);
   clipboard.set_text(text);
@@ -24,7 +29,7 @@ pub fn copy_to_clipboard(text: &str) {
 /// determine what the least text of the match should be.
 pub fn matches(query: &str, text: &str, min_score: usize) -> Option<MatchingBlocks> {
   let score = get_score(query, text);
-  
+
   if score >= min_score {
     Some(get_matching_blocks(query, text))
   } else {
@@ -33,16 +38,47 @@ pub fn matches(query: &str, text: &str, min_score: usize) -> Option<MatchingBloc
 }
 
 /// Checks if a user's query matches an apps description, name, and executable file.
-pub fn matches_app(app: &App, query: &str, min_score: usize) -> Option<(MatchingBlocks, usize)> {
+pub fn matches_app(
+  app: &AppEntry,
+  query: &str,
+  min_score: usize,
+) -> Option<(MatchingBlocks, usize)> {
   let app_score = get_score(query, &app.name);
   let score = vec![
     app_score as f64,
     get_score(query, &shell_words::join(&app.exec)) as f64 * 0.8,
-    get_score(query, &app.desc) as f64 * 0.7,
-  ].into_iter().map(|x| x as usize).max().unwrap();
+    get_score(query, &app.description) as f64 * 0.7,
+  ]
+  .into_iter()
+  .map(|x| x as usize)
+  .max()
+  .unwrap();
 
   if score >= min_score {
     Some((get_matching_blocks(query, &app.name), app_score))
+  } else {
+    None
+  }
+}
+
+/// Checks if a user's query matches a scripts description and name.
+pub fn matches_script(
+  script: &Script,
+  query: &str,
+  min_score: usize,
+) -> Option<(MatchingBlocks, usize)> {
+  let script_score = get_score(query, &script.meta.name);
+  let score = vec![
+    script_score as f64,
+    get_score(query, &script.meta.desc) as f64 * 0.7,
+  ]
+    .into_iter()
+    .map(|x| x as usize)
+    .max()
+    .unwrap();
+
+  if score >= min_score {
+    Some((get_matching_blocks(query, &script.meta.name), script_score))
   } else {
     None
   }
@@ -80,30 +116,27 @@ pub fn init_logger() {
 /// vector should be formatted as a traditional environment variable `TEST=hello` =
 /// `&Path::new("TEST=test")`, it looks a bit weird, but glib requires a Path.
 ///
-/// The working directory is the root directory.
-///
 /// # Example
-/// An extension that launches dlauncher again when its initialized.
+/// An extension that launches dlauncher again when its initialized (I don't know why you would do
+/// this).
 /// ```rust
-/// use std::path::Path;
 /// use dlauncher::util::launch_detached;
 ///
 /// #[no_mangle]
 /// pub unsafe extern "C" fn on_init() {
 ///   launch_detached(vec![
-///     Path::new("/usr/bin/dlauncher")
+///     "/usr/bin/dlauncher"
 ///   ], vec![]);
 ///
 ///   // dlauncher wouldn't work as run as DISPLAY is not set (example of extra environment variables)
 ///   launch_detached(vec![
-///     &Path::new("/usr/bin/dlauncher")
+///     "/usr/bin/dlauncher"
 ///   ], vec![
-///     &Path::new("DISPLAY=idk")
+///     "DISPLAY=idk"
 ///   ]);
 /// }
 /// ```
-/// 
-
+///
 pub fn launch_detached<T: Into<String>>(spawn_args: Vec<T>, spawn_env_extra: Vec<T>) {
   // The things I do for convenience...
   let spawn_args = spawn_args
@@ -125,7 +158,6 @@ pub fn launch_detached<T: Into<String>>(spawn_args: Vec<T>, spawn_env_extra: Vec
     .map(|x| &**x)
     .map(Path::new)
     .collect::<Vec<&Path>>();
-
 
   let args = std::env::vars();
   let mut formatted = Vec::new();
@@ -152,7 +184,7 @@ pub fn launch_detached<T: Into<String>>(spawn_args: Vec<T>, spawn_env_extra: Vec
 }
 
 /// Open something using xdg-open.
-/// 
+///
 /// # Example
 /// ```rust
 /// xdg_open(vec!["file:///home/user/"]) // this will open a file manager usually
