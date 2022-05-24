@@ -5,8 +5,7 @@ use std::{
 
 use log::error;
 
-use crate::launcher::util::config::Config;
-use crate::util::launch_detached;
+use crate::{launcher::util::config::Config, util::launch_detached};
 
 #[derive(Debug, Clone)]
 pub struct ScriptMeta {

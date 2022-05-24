@@ -1,4 +1,4 @@
-use gtk::{Builder, EventBox, Image, Label, prelude::*};
+use gtk::{prelude::*, Builder, EventBox, Image, Label};
 
 use crate::{entry::ResultEntry, fuzzy::MatchingBlocks, launcher::window::Window};
 

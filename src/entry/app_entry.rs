@@ -1,6 +1,6 @@
-use std::{io::BufRead, path::PathBuf};
+use std::path::PathBuf;
 
-use gtk::{gdk_pixbuf::Pixbuf, prelude::*};
+use gtk::gdk_pixbuf::Pixbuf;
 use log::debug;
 
 use crate::{

@@ -1,17 +1,15 @@
-use std::{
-  sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use gtk::{
-  Builder,
-  Entry,
-  EventBox,
-  gdk::{Display, EventKey, Monitor, prelude::*}, gio::Settings, prelude::*, ScrolledWindow, Window as GtkWindow,
+  gdk::{prelude::*, Display, EventKey, Monitor},
+  gio::Settings,
+  prelude::*,
+  Builder, Entry, EventBox, ScrolledWindow, Window as GtkWindow,
 };
 use log::{debug, error};
 
 use crate::{
-  entry::{app_entry::AppEntry, ResultEntry},
+  entry::{app_entry::AppEntry, script_entry::ScriptEntry, ResultEntry},
   extension::{Extension, ExtensionExitCode},
   fuzzy::MatchingBlocks,
   launcher::{
@@ -20,10 +18,8 @@ use crate::{
     util::{app::App, config::Config, query_history::QueryHistory, recent::Recent},
   },
   script::Script,
-  util::matches_app,
+  util::{matches_app, matches_script},
 };
-use crate::entry::script_entry::ScriptEntry;
-use crate::util::matches_script;
 
 #[derive(Debug, Clone)]
 pub struct Window {
@@ -428,7 +424,12 @@ impl Window {
 
       for script in self.state.scripts.iter() {
         if let Some((match_, score)) = matches_script(script, text, self.config.main.least_score) {
-          unsort.push((ResultEntry::Script(ScriptEntry::new(script.clone())), self.clone(), match_, score));
+          unsort.push((
+            ResultEntry::Script(ScriptEntry::new(script.clone())),
+            self.clone(),
+            match_,
+            score,
+          ));
         }
       }
 

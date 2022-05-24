@@ -1,5 +1,5 @@
 use std::{
-  fs::{File, write},
+  fs::{write, File},
   io::{BufRead, BufReader},
   path::PathBuf,
   sync::{Arc, Mutex},

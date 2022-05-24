@@ -1,17 +1,17 @@
 use std::path::Path;
 
 use gtk::{
-  Clipboard,
   gdk::SELECTION_CLIPBOARD,
   glib::{spawn_async, SpawnFlags},
+  Clipboard,
 };
 use libc::setsid;
 
 use crate::{
   entry::app_entry::AppEntry,
   fuzzy::{get_matching_blocks, get_score, MatchingBlocks},
+  script::Script,
 };
-use crate::script::Script;
 
 pub fn no_match() -> MatchingBlocks {
   (vec![], 0)
@@ -72,10 +72,10 @@ pub fn matches_script(
     script_score as f64,
     get_score(query, &script.meta.desc) as f64 * 0.7,
   ]
-    .into_iter()
-    .map(|x| x as usize)
-    .max()
-    .unwrap();
+  .into_iter()
+  .map(|x| x as usize)
+  .max()
+  .unwrap();
 
   if score >= min_score {
     Some((get_matching_blocks(query, &script.meta.name), script_score))
