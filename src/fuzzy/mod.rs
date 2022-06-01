@@ -1,6 +1,7 @@
 use std::cmp::max;
 
-use self::util::{find_longest_match, slice_utf8};
+use self::util::find_longest_match;
+pub use self::util::slice_utf8;
 
 mod util;
 
