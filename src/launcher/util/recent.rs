@@ -20,7 +20,7 @@ pub struct Recent {
 }
 
 impl Recent {
-  pub fn all(path: PathBuf) -> Vec<Recent> {
+  pub fn all(path: &PathBuf) -> Vec<Recent> {
     debug!("Fetching recent apps");
     let file = File::open(&path);
     let mut recents: Vec<Recent> = vec![];

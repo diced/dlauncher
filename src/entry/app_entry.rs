@@ -23,8 +23,7 @@ pub struct AppEntry {
 
 impl AppEntry {
   pub fn execute(&self, window: Window) {
-    let spawn_args = if self.terminal && window.config.launcher.terminal_command.as_ref().is_some()
-    {
+    let spawn_args = if self.terminal && window.config.launcher.terminal_command.as_ref().is_some() {
       let cmd = window.config.launcher.terminal_command.as_ref().unwrap();
       let full = shell_words::join(&self.exec);
       let cmd = cmd.replace("{}", &full);

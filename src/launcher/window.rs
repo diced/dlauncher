@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
 use gtk::{
-  gdk::{prelude::*, Display, EventKey, Monitor},
-  gio::Settings,
+  gdk::{prelude::*, EventKey},
   prelude::*,
   Builder, Entry, EventBox, ScrolledWindow, Window as GtkWindow,
 };
+use gtk::glib::idle_add_local;
 use log::{debug, error};
 
 use crate::{
@@ -15,7 +15,13 @@ use crate::{
   launcher::{
     navigation::Navigation,
     result::ResultWidget,
-    util::{app::App, config::Config, query_history::QueryHistory, recent::Recent},
+    util::{
+      app::App,
+      config::Config,
+      display::{monitor, scaling_factor},
+      query_history::QueryHistory,
+      recent::Recent,
+    },
   },
   script::Script,
   util::{matches_app, matches_script},
@@ -59,7 +65,7 @@ pub struct Result {
 impl Window {
   pub fn new(application: &gtk::Application, config: &Config) -> Self {
     let apps = Arc::new(Mutex::new(App::all()));
-    let recents = Arc::new(Mutex::new(Recent::all(config.recents())));
+    let recents = Arc::new(Mutex::new(Recent::all(&config.recents())));
     let scripts = Arc::new(Script::all(config));
     let dlauncher_str = include_str!("../../data/ui/DlauncherWindow.ui");
 
@@ -143,10 +149,10 @@ impl Window {
   }
 
   fn position_window(&self) {
-    let monitor = self.monitor();
+    let monitor = monitor();
     let geo = monitor.geometry();
     let max_height = geo.height() as f32 - (geo.height() as f32 * 0.15) - 100.0;
-    let window_width = 500.0 * self.scaling_factor() + 100.0;
+    let window_width = 500.0 * scaling_factor() + 100.0;
 
     self
       .window
@@ -161,56 +167,12 @@ impl Window {
     self.window.move_(x as i32, (y + 92_f32) as i32);
   }
 
-  fn monitor(&self) -> Monitor {
-    let display = Display::default().unwrap();
-    if let Some(monitor) = display.primary_monitor() {
-      monitor
-    } else if let Some(monitor) = display.monitor(0) {
-      monitor
-    } else {
-      let seat = display.default_seat().unwrap();
-      let (_, x, y) = seat.pointer().unwrap().position();
-
-      if let Some(monitor) = display.monitor_at_point(x, y) {
-        monitor
-      } else {
-        panic!("Couldn't get monitor through various methods...")
-      }
-    }
-  }
-
-  fn scaling_factor(&self) -> f32 {
-    let monitor_scaling = self.monitor().scale_factor();
-    let text_scaling = Settings::new("org.gnome.desktop.interface");
-    let text_scaling = text_scaling.double("text-scaling-factor");
-
-    (monitor_scaling as f64 * text_scaling) as f32
-  }
-
   /// Show the GTK window, and refresh the apps and recents.
   pub fn show_window(&self) {
-    for ext in &self.extensions {
-      match ext.on_open() {
-        ExtensionExitCode::Error(err) => {
-          error!("[{}] An error occurred on `on_open`: {}", ext.name, err)
-        }
-        _ => {}
-      }
-    }
-
     self.styles();
     self.window.present();
     self.position_window();
     self.fix_window_width();
-
-    let mut apps = self.state.apps.lock().unwrap();
-    let mut recents = self.state.recents.lock().unwrap();
-    *apps = App::all();
-    *recents = Recent::all(self.config.recents());
-
-    // For some reason the mutex doesn't go out of scope and get automatically dropped so i had to do this.
-    drop(apps);
-    drop(recents);
 
     self.show_results(vec![], false);
     self.window.grab_focus();
@@ -220,6 +182,26 @@ impl Window {
       input.set_text("");
     }
     input.grab_focus();
+  }
+
+  pub fn hide_window(&self) {
+    self.window.hide();
+
+    let state = self.state.clone();
+    let config_recents = self.config.recents();
+
+    idle_add_local(move || {
+      let mut apps = state.apps.lock().unwrap();
+      let mut recents = state.recents.lock().unwrap();
+      *apps = App::all();
+      *recents = Recent::all(&config_recents);
+
+      // For some reason the mutex doesn't go out of scope and get automatically dropped so i had to do this.
+      drop(apps);
+      drop(recents);
+
+      Continue(false)
+    });
   }
 
   /// Add a result widget to the results box
@@ -384,7 +366,7 @@ impl Window {
           }
 
           if self.config.main.daemon {
-            self.window.hide();
+            self.hide_window();
             entry.execute(self.clone());
           } else {
             entry.execute(self.clone());
@@ -393,7 +375,7 @@ impl Window {
         }
       } else if keycode == custom.close {
         if self.config.main.daemon {
-          self.window.hide();
+          self.hide_window();
         } else {
           std::process::exit(0);
         }

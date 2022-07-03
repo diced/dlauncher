@@ -79,9 +79,12 @@ impl ResultWidget {
   pub fn setup(&self) {
     let item_box: EventBox = self.builder.object("item-box").unwrap();
     let result_notify = self.clone();
-    item_box.connect_enter_notify_event(move |_, _| {
-      let mut navigation = result_notify.window.navigation.lock().unwrap();
-      navigation.select(result_notify.index);
+    item_box.connect_enter_notify_event(move |_, e| {
+      if e.time() != 0 {
+        let mut navigation = result_notify.window.navigation.lock().unwrap();
+        navigation.select(result_notify.index);
+      }
+
       Inhibit(false)
     });
 
