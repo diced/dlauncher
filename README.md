@@ -23,7 +23,7 @@ If you are running in daemon mode, you can run the `dlauncher-toggle` command to
 Due to how Dlauncher is built, it is 100% compatible with Ulauncher themes! All you need to do is move your theme from `~/.config/ulauncher/user-themes`
 to `~/.config/dlauncher/themes`. 
 ```shell
-cp -r ~/.config/ulauncher/user-themes/* ~/.config/dlauncher/themes`
+cp -r ~/.config/ulauncher/user-themes/* ~/.config/dlauncher/themes
 ```
 
 If you would like to migrate your recent apps that show at the start, you can 
