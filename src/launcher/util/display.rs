@@ -5,11 +5,13 @@ pub fn monitor() -> Monitor {
   let display = Display::default().unwrap();
   let seat = display.default_seat().unwrap();
   let (_, x, y) = seat.pointer().unwrap().position();
-  if let Some(monitor) = display.monitor(0) {
+  if let Some(monitor) = display.monitor.monitor_at_window(gdk::Window::toplevel()) {
+    monitor
+  } else if let Some(monitor) = display.monitor_at_point(x, y) {
     monitor
   } else if let Some(monitor) = display.primary_monitor() {
     monitor
-  } else if let Some(monitor) = display.monitor_at_point(x, y) {
+  } else if let Some(monitor) = display.monitor(0) {
     monitor
   } else {
       panic!("Couldn't get monitor through various methods...")
