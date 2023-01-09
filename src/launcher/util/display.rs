@@ -5,11 +5,11 @@ pub fn monitor() -> Monitor {
   let display = Display::default().unwrap();
   let seat = display.default_seat().unwrap();
   let (_, x, y) = seat.pointer().unwrap().position();
-  if let Some(monitor) = display.monitor_at_point(x, y) {
-      monitor
+  if let Some(monitor) = display.monitor(0) {
+    monitor
   } else if let Some(monitor) = display.primary_monitor() {
     monitor
-  } else if let Some(monitor) = display.monitor(0) {
+  } else if let Some(monitor) = display.monitor_at_point(x, y) {
     monitor
   } else {
       panic!("Couldn't get monitor through various methods...")
